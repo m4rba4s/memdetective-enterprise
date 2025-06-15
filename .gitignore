@@ -1,0 +1,44 @@
+# Build artifacts
+build/
+memory-inspector
+*.o
+*.so
+*.a
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Core dumps
+core.*
+
+# Test outputs
+/tmp/dumps/
+*.log
+*.pid
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+*.tmp
+*.temp
+
+# Memory dumps for testing
+*.bin
+*.meta
+*.dump
+
+# Configuration files (may contain secrets)
+*.conf.local
+*.key
+*.pem
+*.cert
