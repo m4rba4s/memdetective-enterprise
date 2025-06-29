@@ -14,7 +14,6 @@
 #include <errno.h>
 
 #include "memory_inspector.h"
-#include "dump_engine.h"
 
 /* Test framework macros */
 #define TEST_ASSERT(condition, message) \

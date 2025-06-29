@@ -1,8 +1,7 @@
 /**
- * Memory Inspector CLI - Enterprise Configuration Parser
+ * Memory Inspector CLI - Configuration Parser
  * 
- * Professional configuration management with environment variable support,
- * validation, and enterprise-grade default handling
+ * Configuration management with environment variable support and validation
  */
 
 #include "enterprise_logger.h"

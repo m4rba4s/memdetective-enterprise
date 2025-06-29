@@ -1,8 +1,7 @@
 /**
- * Memory Inspector CLI - Enterprise-Grade Auto-Dump Engine
+ * Memory Inspector CLI - Auto-Dump Engine
  * 
- * Senior-level implementation with fail-safe mechanisms, performance optimization,
- * and enterprise observability. Production-ready for IR/DFIR teams.
+ * Implementation with fail-safe mechanisms and performance optimization.
  */
 
 #include "memory_inspector.h"

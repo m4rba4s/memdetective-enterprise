@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+*.o
+*.so
+*.a
+memory-inspector
+
+# Development files
+.git/
+.github/
+*.md
+docs/
+tests/
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.swp
+*.swo
+*~
+
+# IDE files
+*.sublime-*
+*.code-workspace
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore

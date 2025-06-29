@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    name: Build and Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04, macos-latest]
+        include:
+          - os: ubuntu-latest
+            deps: sudo apt-get update && sudo apt-get install -y build-essential libyara-dev libncurses5-dev pkg-config libssl-dev
+          - os: ubuntu-20.04
+            deps: sudo apt-get update && sudo apt-get install -y build-essential libyara-dev libncurses5-dev pkg-config libssl-dev
+          - os: macos-latest
+            deps: brew install yara ncurses pkg-config openssl
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: ${{ matrix.deps }}
+    
+    - name: Build project
+      run: |
+        make clean
+        make -j$(nproc || sysctl -n hw.ncpu)
+    
+    - name: Run tests
+      run: make test
+    
+    - name: Run static analysis
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get install -y cppcheck clang-tidy
+        make lint
+    
+    - name: Upload artifacts
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: memory-inspector-linux
+        path: memory-inspector
+        retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: cpp
+        queries: security-and-quality
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libyara-dev libncurses5-dev pkg-config libssl-dev
+    
+    - name: Build for CodeQL
+      run: |
+        make clean
+        make -j$(nproc)
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:cpp"

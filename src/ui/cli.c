@@ -1,13 +1,13 @@
 /**
  * Memory Inspector CLI - Command Line Interface
  * 
- * Professional CLI with colored output and comprehensive options
- * Clean, informative display of memory analysis results
+ * CLI with colored output and comprehensive options
  */
 
 #include "memory_inspector.h"
 #include "platform.h"
 #include "logger.h"
+#include "cli_graphics.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,21 +56,13 @@ static void print_colored(const char *color, const char *format, ...) {
 }
 
 /**
- * Print banner
+ * Print enhanced banner
  */
 static void print_banner(void) {
     if (g_cli_state.quiet) return;
     
-    print_colored(COLOR_CYAN COLOR_BOLD, 
-        "╔═══════════════════════════════════════════════════════════════╗\n");
-    print_colored(COLOR_CYAN COLOR_BOLD,
-        "║                    Memory Inspector CLI                       ║\n");
-    print_colored(COLOR_CYAN COLOR_BOLD,
-        "║           Professional Memory Analysis Tool v%s            ║\n", MI_VERSION_STRING);
-    print_colored(COLOR_CYAN COLOR_BOLD,
-        "║              For Security Research & Forensics               ║\n");
-    print_colored(COLOR_CYAN COLOR_BOLD,
-        "╚═══════════════════════════════════════════════════════════════╝\n");
+    cli_print_banner("Memory Inspector CLI", "Memory Analysis Tool v1.0.0");
+    cli_print_colored(FG_CYAN, "              For Security Research & Forensics\n");
     printf("\n");
 }
 
@@ -134,17 +126,6 @@ static void format_size(size_t size, char *buffer, size_t buffer_size) {
     }
 }
 
-/**
- * Format permissions string
- */
-static const char *format_permissions(mi_permissions_t perms) {
-    static char perm_str[4];
-    perm_str[0] = (perms & MI_PERM_READ) ? 'r' : '-';
-    perm_str[1] = (perms & MI_PERM_WRITE) ? 'w' : '-';
-    perm_str[2] = (perms & MI_PERM_EXEC) ? 'x' : '-';
-    perm_str[3] = '\0';
-    return perm_str;
-}
 
 /**
  * Get region type name
@@ -163,57 +144,82 @@ static const char *get_region_type_name(mi_region_type_t type) {
 }
 
 /**
- * Print process summary
+ * Print enhanced process summary with graphics
  */
 static void print_process_summary(const mi_process_info_t *info) {
     if (g_cli_state.quiet) return;
     
     printf("\n");
-    print_colored(COLOR_BLUE COLOR_BOLD, "═══ PROCESS INFORMATION ═══\n");
-    printf("PID:           %d\n", info->pid);
-    printf("Name:          %s\n", info->name);
-    printf("Executable:    %s\n", info->exe_path);
-    printf("Regions:       %zu\n", info->region_count);
+    cli_draw_separator(80, "PROCESS INFORMATION");
     
     /* Calculate statistics */
     size_t total_size = 0;
-    size_t exec_regions = 0;
+    size_t executable_regions = 0;
     size_t suspicious_regions = 0;
     size_t injected_regions = 0;
     
     for (size_t i = 0; i < info->region_count; i++) {
         const mi_memory_region_t *region = &info->regions[i];
         total_size += region->size;
-        if (region->permissions & MI_PERM_EXEC) exec_regions++;
+        if (region->permissions & MI_PERM_EXEC) executable_regions++;
         if (region->is_suspicious) suspicious_regions++;
         if (region->is_injected) injected_regions++;
     }
     
-    char size_str[32];
-    format_size(total_size, size_str, sizeof(size_str));
-    printf("Total Size:    %s\n", size_str);
-    printf("Executable:    %zu regions\n", exec_regions);
+    char total_size_str[32];
+    format_size(total_size, total_size_str, sizeof(total_size_str));
     
+    // Enhanced info display with colors and icons
+    cli_print_colored(FG_BRIGHT_WHITE COLOR_BOLD, "%s PID:           ", SYMBOL_INFO);
+    cli_print_colored(FG_CYAN, "%d\n", info->pid);
+    
+    cli_print_colored(FG_BRIGHT_WHITE COLOR_BOLD, "%s Name:          ", SYMBOL_STAR);
+    cli_print_colored(FG_GREEN, "%s\n", info->name);
+    
+    cli_print_colored(FG_BRIGHT_WHITE COLOR_BOLD, "%s Executable:    ", SYMBOL_DIAMOND);
+    cli_print_colored(FG_BLUE, "%s\n", info->exe_path);
+    
+    cli_print_colored(FG_BRIGHT_WHITE COLOR_BOLD, "%s Regions:       ", SYMBOL_BULLET);
+    cli_print_colored(FG_YELLOW, "%zu\n", info->region_count);
+    
+    cli_print_colored(FG_BRIGHT_WHITE COLOR_BOLD, "%s Total Size:    ", SYMBOL_CIRCLE);
+    cli_print_colored(FG_MAGENTA, "%s\n", total_size_str);
+    
+    cli_print_colored(FG_BRIGHT_WHITE COLOR_BOLD, "%s Executable:    ", SYMBOL_TRIANGLE);
+    cli_print_colored(FG_CYAN, "%zu regions\n", executable_regions);
+    
+    // Memory usage visualization
+    printf("\n");
+    cli_draw_progress_bar("Memory Usage", total_size, total_size, 50);
+    cli_draw_progress_bar("Exec Regions", executable_regions, info->region_count, 50);
+    
+    // Show threat indicators if present
     if (suspicious_regions > 0) {
-        print_colored(COLOR_YELLOW, "Suspicious:    %zu regions\n", suspicious_regions);
+        printf("\n");
+        char buffer[128];
+        snprintf(buffer, sizeof(buffer), "%zu suspicious regions detected", suspicious_regions);
+        cli_print_status(SYMBOL_WARNING, STATUS_WARNING, buffer);
     }
     if (injected_regions > 0) {
-        print_colored(COLOR_RED, "Injected:      %zu regions\n", injected_regions);
+        char buffer[128];
+        snprintf(buffer, sizeof(buffer), "%zu injected regions detected", injected_regions);
+        cli_print_status(SYMBOL_CROSS, STATUS_DANGER, buffer);
     }
 }
 
 /**
- * Print memory map
+ * Print enhanced memory map with rich graphics
  */
 static void print_memory_map(const mi_process_info_t *info) {
     if (g_cli_state.quiet) return;
     
     printf("\n");
-    print_colored(COLOR_BLUE COLOR_BOLD, "═══ MEMORY MAP ═══\n");
+    cli_draw_separator(80, "MEMORY MAP");
     
+    // Enhanced table header
     printf("%-18s %-18s %-8s %-4s %-8s %-10s %s\n",
            "START", "END", "SIZE", "PERM", "TYPE", "FLAGS", "PATH");
-    print_colored(COLOR_CYAN, 
+    cli_print_colored(FG_CYAN, 
            "──────────────────────────────────────────────────────────────────────────────────\n");
     
     for (size_t i = 0; i < info->region_count; i++) {
@@ -222,70 +228,131 @@ static void print_memory_map(const mi_process_info_t *info) {
         char size_str[16];
         format_size(region->size, size_str, sizeof(size_str));
         
-        /* Choose color based on region characteristics */
-        const char *color = COLOR_RESET;
-        if (region->is_suspicious && region->is_injected) {
-            color = COLOR_RED COLOR_BOLD;
-        } else if (region->is_suspicious) {
-            color = COLOR_YELLOW;
-        } else if (region->is_injected) {
-            color = COLOR_MAGENTA;
-        } else if (region->permissions & MI_PERM_EXEC) {
-            color = COLOR_GREEN;
+        /* Enhanced address display */
+        cli_print_colored(FG_GRAY, "0x%016lx 0x%016lx ", 
+                         region->start_addr, region->end_addr);
+        
+        /* Size with color coding based on size */
+        if (region->size > 100*1024*1024) { /* >100MB */
+            cli_print_colored(FG_RED, "%-8s ", size_str);
+        } else if (region->size > 10*1024*1024) { /* >10MB */
+            cli_print_colored(FG_YELLOW, "%-8s ", size_str);
+        } else {
+            cli_print_colored(FG_WHITE, "%-8s ", size_str);
         }
         
-        /* Format flags */
-        char flags[16] = "";
-        if (region->is_suspicious) strcat(flags, "S");
-        if (region->is_injected) strcat(flags, "I");
-        if ((region->permissions & (MI_PERM_WRITE | MI_PERM_EXEC)) == 
-            (MI_PERM_WRITE | MI_PERM_EXEC)) strcat(flags, "X");
+        /* Permissions with enhanced colors */
+        cli_draw_permission_flags(region->permissions);
+        printf(" ");
         
-        print_colored(color, "0x%016lx 0x%016lx %-8s %-4s %-8s %-10s %s\n",
-                     region->start_addr, region->end_addr, size_str,
-                     format_permissions(region->permissions),
-                     get_region_type_name(region->type),
-                     flags, region->path);
+        /* Type with color coding */
+        const char *type_color = FG_WHITE;
+        switch (region->type) {
+            case MI_REGION_CODE: type_color = FG_GREEN; break;
+            case MI_REGION_DATA: type_color = FG_BLUE; break;
+            case MI_REGION_HEAP: type_color = FG_YELLOW; break;
+            case MI_REGION_STACK: type_color = FG_MAGENTA; break;
+            case MI_REGION_SHARED: type_color = FG_CYAN; break;
+            case MI_REGION_VDSO: type_color = FG_BRIGHT_BLUE; break;
+            case MI_REGION_VSYSCALL: type_color = FG_BRIGHT_MAGENTA; break;
+            default: type_color = FG_GRAY; break;
+        }
+        cli_print_colored(type_color, "%-8s ", get_region_type_name(region->type));
+        
+        /* Enhanced flags with symbols and colors */
+        printf("%-3s", ""); /* Start flags column */
+        if (region->is_suspicious) {
+            cli_print_colored(STATUS_DANGER, "S");
+        }
+        if (region->is_injected) {
+            cli_print_colored(STATUS_WARNING, "I");
+        }
+        if ((region->permissions & (MI_PERM_WRITE | MI_PERM_EXEC)) == 
+            (MI_PERM_WRITE | MI_PERM_EXEC)) {
+            cli_print_colored(STATUS_DANGER, "X");
+        }
+        printf("%-7s ", ""); /* Padding for flags */
+        
+        /* Path with smart truncation and highlighting */
+        if (strlen(region->path) > 50) {
+            cli_print_colored(FG_CYAN, "...%s", 
+                            region->path + strlen(region->path) - 47);
+        } else if (strlen(region->path) == 0) {
+            cli_print_colored(FG_GRAY, "[anonymous]");
+        } else if (strstr(region->path, "[heap]") || strstr(region->path, "[stack]") || 
+                   strstr(region->path, "[vdso]") || strstr(region->path, "[vsyscall]")) {
+            cli_print_colored(FG_BRIGHT_CYAN, "%s", region->path);
+        } else {
+            cli_print_colored(FG_CYAN, "%s", region->path);
+        }
+        printf("\n");
     }
     
-    printf("\nLegend: S=Suspicious, I=Injected, X=Write+Exec\n");
+    cli_draw_memory_legend();
 }
 
 /**
- * Print analysis results
+ * Print enhanced analysis results
  */
 static void print_analysis_results(int anomalies, int yara_matches, int dumps) {
     if (g_cli_state.quiet) return;
     
     printf("\n");
-    print_colored(COLOR_BLUE COLOR_BOLD, "═══ ANALYSIS RESULTS ═══\n");
+    cli_draw_separator(80, "ANALYSIS RESULTS");
+    
+    // Results summary with icons
+    char buffer[256];
     
     if (anomalies > 0) {
-        print_colored(COLOR_YELLOW, "Memory Anomalies: %d detected\n", anomalies);
+        snprintf(buffer, sizeof(buffer), "Memory Anomalies: %d detected", anomalies);
+        cli_print_status(SYMBOL_WARNING, STATUS_WARNING, buffer);
     } else {
-        print_colored(COLOR_GREEN, "Memory Anomalies: None detected\n");
+        cli_print_status(SYMBOL_CHECKMARK, STATUS_SAFE, "Memory Anomalies: None detected");
     }
     
     if (yara_matches > 0) {
-        print_colored(COLOR_RED, "YARA Matches:     %d found\n", yara_matches);
+        snprintf(buffer, sizeof(buffer), "YARA Matches: %d found", yara_matches);
+        cli_print_status(SYMBOL_CROSS, STATUS_DANGER, buffer);
     } else {
-        print_colored(COLOR_GREEN, "YARA Matches:     None found\n");
+        cli_print_status(SYMBOL_CHECKMARK, STATUS_SAFE, "YARA Matches: None found");
     }
     
     if (dumps > 0) {
-        print_colored(COLOR_CYAN, "Memory Dumps:     %d regions dumped\n", dumps);
+        snprintf(buffer, sizeof(buffer), "Memory Dumps: %d regions dumped", dumps);
+        cli_print_status(SYMBOL_INFO, STATUS_INFO, buffer);
     }
     
-    /* Overall assessment */
+    // Enhanced threat assessment
     printf("\n");
-    if (anomalies > 0 || yara_matches > 0) {
-        print_colored(COLOR_RED COLOR_BOLD, "⚠ SECURITY ASSESSMENT: SUSPICIOUS ACTIVITY DETECTED\n");
-        printf("Recommend further investigation and manual analysis.\n");
+    threat_level_t threat_level;
+    if (yara_matches > 0) {
+        threat_level = THREAT_HIGH;
+    } else if (anomalies > 5) {
+        threat_level = THREAT_MEDIUM;
+    } else if (anomalies > 0) {
+        threat_level = THREAT_LOW;
     } else {
-        print_colored(COLOR_GREEN COLOR_BOLD, "✓ SECURITY ASSESSMENT: NO OBVIOUS THREATS DETECTED\n");
+        threat_level = THREAT_NONE;
+    }
+    
+    if (threat_level > THREAT_NONE) {
+        cli_draw_threat_indicator(threat_level, "SUSPICIOUS ACTIVITY DETECTED");
+        cli_print_tip("Recommend further investigation and manual analysis");
+    } else {
+        cli_draw_threat_indicator(threat_level, "NO OBVIOUS THREATS DETECTED");
         printf("Process appears to have normal memory characteristics.\n");
     }
+    
+    // Add recommendations box
+    if (threat_level > THREAT_LOW) {
+        printf("\n");
+        cli_print_warning_box("High threat level detected. Consider:\n"
+                             "• Running with elevated privileges for deeper analysis\n"
+                             "• Enabling YARA scanning with comprehensive rules\n"
+                             "• Dumping suspicious regions for offline analysis");
+    }
 }
+
 
 /**
  * Parse command line arguments
@@ -377,6 +444,9 @@ int mi_cli_main(int argc, char *argv[]) {
         return (parse_result == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
     }
     
+    /* Initialize graphics subsystem */
+    cli_init_graphics(g_cli_state.colors_enabled);
+    
     /* Set CLI colors */
     if (!g_cli_state.colors_enabled) {
         mi_log_set_colors(false);
@@ -436,6 +506,7 @@ int mi_cli_main(int argc, char *argv[]) {
     
     /* Cleanup */
     mi_cleanup();
+    cli_cleanup_graphics();
     
     /* Return appropriate exit code */
     return (anomalies > 0 || yara_matches > 0) ? EXIT_FAILURE : EXIT_SUCCESS;

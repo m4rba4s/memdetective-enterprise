@@ -2,7 +2,6 @@
  * Memory Inspector CLI - Main Entry Point
  * 
  * Professional memory analysis tool for security research
- * Senior-grade implementation with clean architecture
  */
 
 #include "memory_inspector.h"

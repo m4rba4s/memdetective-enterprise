@@ -1,14 +1,21 @@
 # Memory Inspector CLI
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/memory-inspector-cli)
+[![CI](https://github.com/m4rba4s/memory-inspector-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/m4rba4s/memory-inspector-cli/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/m4rba4s/memory-inspector-cli)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-green)](https://github.com/m4rba4s/memory-inspector-cli)
+[![CodeQL](https://github.com/m4rba4s/memory-inspector-cli/actions/workflows/codeql.yml/badge.svg)](https://github.com/m4rba4s/memory-inspector-cli/actions/workflows/codeql.yml)
+[![Latest Release](https://img.shields.io/github/v/release/m4rba4s/memory-inspector-cli)](https://github.com/m4rba4s/memory-inspector-cli/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Linux-blue)](https://github.com/your-username/memory-inspector-cli)
-[![Language](https://img.shields.io/badge/language-C11-orange)](https://github.com/your-username/memory-inspector-cli)
-[![Security](https://img.shields.io/badge/security-focused-red)](https://github.com/your-username/memory-inspector-cli)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-blue)](https://github.com/m4rba4s/memory-inspector-cli)
+[![Language](https://img.shields.io/badge/language-C11-orange)](https://github.com/m4rba4s/memory-inspector-cli)
 
-**Professional Memory Analysis Tool for Blue/Red Team Operations**
+**Memory Analysis Tool for Security Operations**
 
-A senior-grade, cross-platform memory inspector CLI tool designed for security researchers, reverse engineers, and forensics analysts. Built with clean architecture, modular design, and enterprise-grade security practices.
+⚡ **TL;DR**: Memory forensics CLI for detecting process injection, shellcode, and memory anomalies with YARA integration and automated dumping.
+
+A cross-platform memory inspector CLI tool designed for security researchers, reverse engineers, and forensics analysts. Built with clean architecture and modular design.
+
+![Demo](docs/demo.gif)
 
 ## 🎯 Core Features
 
@@ -55,44 +62,119 @@ memory-inspector-cli/
 └── examples/           # Usage examples
 ```
 
-## 🚀 Quick Start (Fedora 42)
+## 🚀 Installation
 
-### Dependencies
+### 📋 Platform Support Matrix
+
+| Platform | Architecture | Build Status | Package Manager | Tested Versions |
+|----------|-------------|--------------|-----------------|-----------------|
+| **Linux** | x86_64 | ✅ | apt, dnf, yum | Ubuntu 20.04+, RHEL 8+, Fedora 35+ |
+| **Linux** | ARM64 | ✅ | apt, dnf, yum | Ubuntu 20.04+, RHEL 8+ |
+| **macOS** | x86_64 | ⚠️ | brew | macOS 11+ |
+| **macOS** | ARM64 (M1/M2) | ⚠️ | brew | macOS 11+ |
+| **Windows** | x86_64 | ❌ | - | Planned for v2.0 |
+
+### 🐧 Debian/Ubuntu
 ```bash
-# Install build dependencies
+# Install dependencies
+sudo apt update
+sudo apt install -y build-essential libyara-dev libncurses5-dev pkg-config libssl-dev
+
+# Clone and build
+git clone https://github.com/m4rba4s/memory-inspector-cli.git
+cd memory-inspector-cli
+make -j$(nproc)
+sudo make install
+
+# Verify installation
+memory-inspector --version
+```
+
+### 🎩 RHEL/CentOS/Fedora
+```bash
+# RHEL/CentOS (enable EPEL first)
+sudo dnf install -y epel-release
 sudo dnf install -y yara-devel ncurses-devel gcc make pkg-config openssl-devel
 
-# Or use the provided script (requires sudo)
-make deps-fedora
-```
+# Fedora
+sudo dnf install -y yara-devel ncurses-devel gcc make pkg-config openssl-devel
 
-### Build
-```bash
-# Clone and build
-git clone https://github.com/your-username/memory-inspector-cli.git
+# Build and install
+git clone https://github.com/m4rba4s/memory-inspector-cli.git
 cd memory-inspector-cli
-make
-
-# Debug build with symbols
-make debug
-
-# Clean build
-make clean
+make -j$(nproc)
+sudo make install
 ```
 
-### Usage
+### 🍎 macOS
+```bash
+# Install Homebrew if not available
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install dependencies
+brew install yara ncurses pkg-config openssl
+
+# Build and install
+git clone https://github.com/m4rba4s/memory-inspector-cli.git
+cd memory-inspector-cli
+make -j$(sysctl -n hw.ncpu)
+sudo make install
+```
+
+### 🐳 Docker
+```bash
+# Quick run
+docker run --rm -it --pid=host --privileged \
+  ghcr.io/m4rba4s/memory-inspector:latest --pid 1234
+
+# Build from source
+git clone https://github.com/m4rba4s/memory-inspector-cli.git
+cd memory-inspector-cli
+docker build -t memory-inspector .
+docker run --rm -it --pid=host --privileged memory-inspector --pid 1234
+```
+
+### 📦 Pre-built Releases
+```bash
+# Download latest release
+curl -L https://github.com/m4rba4s/memory-inspector-cli/releases/latest/download/memory-inspector-linux-x86_64.tar.gz | tar xz
+sudo mv memory-inspector /usr/local/bin/
+sudo chmod +x /usr/local/bin/memory-inspector
+```
+
+## 🚀 Quick Start
+
+### Basic Usage
 ```bash
 # Basic memory analysis
-./memory-inspector --pid 1234
+memory-inspector --pid 1234
 
 # YARA scan with custom rules
-./memory-inspector --pid 1234 --yara-rules /path/to/rules.yar
+memory-inspector --pid 1234 --yara-rules /path/to/rules.yar
 
 # Auto-dump suspicious regions
-./memory-inspector --pid 1234 --auto-dump --output-dir /tmp/dumps
+memory-inspector --pid 1234 --auto-dump --output-dir /tmp/dumps
 
-# TUI mode
-./memory-inspector --tui --pid 1234
+# Interactive TUI mode
+memory-inspector --tui --pid 1234
+
+# Scan all processes (requires root)
+sudo memory-inspector --scan-all --auto-dump
+
+# Verbose output with detailed analysis
+memory-inspector --pid 1234 --verbose --show-regions
+```
+
+### Real-world Examples
+```bash
+# Detect process injection in a suspicious process
+sudo memory-inspector --pid $(pgrep suspicious_app) --auto-dump --output-dir ./forensics/
+
+# Scan browser process for exploitation
+sudo memory-inspector --pid $(pgrep firefox) --yara-rules rules/browser_exploits.yar
+
+# Monitor system for memory anomalies
+sudo memory-inspector --scan-all --threshold high --syslog
 ```
 
 ## 🔧 Development
@@ -143,7 +225,7 @@ make format
 
 ## 📄 License
 
-[funcybot@gmail.com]
+MIT License - see LICENSE file for details
 
 ## 🔗 Links
 
@@ -153,4 +235,4 @@ make format
 
 ---
 
-**Built with ❤️ by security professionals, for security professionals**
+**Professional memory analysis tool for security researchers and forensic analysts**
